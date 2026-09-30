@@ -1,190 +1,93 @@
+from __future__ import annotations
+from datetime import date
 
+class QuantidadeInvalidaError (Exception): pass
+class MedicamentoVencidoError (Exception): pass
 
-
-Lista 2
-# INÍCIO DA QUESTÃO 6
-SALARIO_MINIMO = 1621.00
-
-
-class SalarioInvalidoError(Exception):
-    pass
-
-
-class Funcionario:
-    def __init__(self, nome, salario):
+class Medicamento:
+    def __init__ (self, nome: str, lote: str, validade: date, quantidade: int, valor: float):
         self.nome = nome
-        self.salario = salario
+        self.lote = lote
+        self.validade = validade
+        self.quantidade = quantidade
+        self.valor = valor
 
+    @property 
+    def quantidade (self):
+        return self._quantidade
+
+    @quantidade.setter
+    def quantidade (self, valor):
+        if valor < 0 :
+            raise ValueError ("Quantidade não pode ser negativa!")
+            self._quantidade = valor
+    
     @property
-    def salario(self):
-        return self._salario
+    def valor (self):
+        return self._valor
 
-    @salario.setter
-    def salario(self, valor):
-        if valor < SALARIO_MINIMO:
-            raise SalarioInvalidoError(
-                f"Salário inválido. O mínimo é R$ {SALARIO_MINIMO:.2f}."
-            )
-        self._salario = valor
-
-    def aumentar(self, percentual):
-        if percentual <= 0 or percentual > 30:
-            raise ValueError(
-                "O percentual deve ser maior que 0 e menor ou igual a 30."
-            )
-
-        self._salario += self._salario * (percentual / 100)
-
-# FIM DA QUESTÃO 6
-
-# INÍCIO DA QUESTÃO 7
-class EmailInvalidoError(Exception):
-    pass
-
-
-class Email:
-    def __init__(self, endereco):
-        self.endereco = endereco
-
-    @property
-    def endereco(self):
-        return self._endereco
-
-    @endereco.setter
-    def endereco(self, valor):
-        if "@" not in valor or "." not in valor:
-            raise EmailInvalidoError("E-mail inválido.")
-        self._endereco = valor
-
-# FIM DA QUESTÃO 7
-
-# INÍCIO DA QUESTÃO 8
-def testes_questao_8():
-    print("\n--- TESTES DA QUESTÃO 8 ---")
-
-    # Caso de erro 1: salário abaixo do mínimo
-    try:
-        funcionario = Funcionario("Maria", 1000)
-    except SalarioInvalidoError as erro:
-        print("Erro de salário:", erro)
-
-    # Caso de erro 2: percentual inválido
-    try:
-        funcionario = Funcionario("Maria", SALARIO_MINIMO)
-        funcionario.aumentar(40)
-    except ValueError as erro:
-        print("Erro de aumento:", erro)
-
-    # Caso de erro 1: e-mail sem @
-    try:
-        email = Email("mariaemail.com")
-    except EmailInvalidoError as erro:
-        print("Erro de e-mail:", erro)
-
-    # Caso de erro 2: e-mail sem .
-    try:
-        email = Email("maria@email")
-    except EmailInvalidoError as erro:
-        print("Erro de e-mail:", erro)
-
-# FIM DA QUESTÃO 8
-
-# INÍCIO DA QUESTÃO 9
-class ErroDeConta(Exception):
-    pass
-
-
-class ValorInvalidoError(ErroDeConta):
-    pass
-
-
-class SaldoInsuficienteError(ErroDeConta):
-    pass
-
-
-class LimiteExcedidoError(ErroDeConta):
-    pass
-
-
-class ContaBancaria:
-    LIMITE_SAQUE = 1000.00
-
-    def __init__(self, saldo=0):
-        if saldo < 0:
-            raise ValorInvalidoError("O saldo inicial não pode ser negativo.")
-        self._saldo = saldo
-
-    @property
-    def saldo(self):
-        return self._saldo
-
-    def depositar(self, valor):
+    @valor.setter
+    def valor(self, valor):
         if valor <= 0:
-            raise ValorInvalidoError(
-                "O valor do depósito deve ser maior que zero."
+            raise ValueError("Valor deve ser maior que zero!")
+            self._valor = valor
+
+    @classmethod 
+    def de_registro(cls, registro): 
+        nome, lote, validade, quantidade, valor = registro.split(";")
+
+        return cls(nome,lote, date.fromisoformat(validade), int(quantidade), float(valor))
+
+    @staticmethod
+    def dias_para_vencer(validade): 
+            return (validade - data.today()).days
+        
+    def dispensar(self, quantidade):
+        if quantidade <= 0:
+            raise QuantidadeInvalidaError("A quantidade deve ser maior que zero")
+            
+        if quantidade > self.quantidade:
+            raise QuantidadeInvalidaError("Quantidade solicitada maior que o estoque.")
+
+        if self.validade < date.today():
+            raise MedicamentoVencidoError("Não é possivel dispensar medicamento vencido")
+            self.quantidade -= quantidade
+        
+    def repor (self, quantidade: int):
+        self.quantidade += quantidade
+
+    def __str__ (self):
+        return (
+            f"{self.nome} unidades -"
+            f"Validade: {self.validade}"
             )
-
-        self._saldo += valor
-
-    def sacar(self, valor):
-        if valor <= 0:
-            raise ValorInvalidoError(
-                "O valor do saque deve ser maior que zero."
+    def __repr__ (self):
+        return (
+            f"Medicamento({self.nome} , {self.lote}"
+            f"{self.validade}, {self.quantidade}, {self.valor})"
             )
+        
+    def __eq__(self, outro):
+        return self.nome == outro.nome and self.lote == outro.lote
 
-        if valor > self.LIMITE_SAQUE:
-            raise LimiteExcedidoError(
-                "O saque não pode ultrapassar R$ 1.000,00 por operação."
-            )
+    def __lt__(self, outro):
+        return self.validade < outro.validade
 
-        if valor > self._saldo:
-            raise SaldoInsuficienteError("Saldo insuficiente.")
+if __name__ == "__main__":
+    medicamento = Medicamento("Paracetamol", "L001", date(2026, 12, 31), 100, 10.50)
 
-        self._saldo -= valor
+    print(medicamento)
 
-# FIM DA QUESTÃO9
+    medicamento.dispensar(20)
+    print("Quantidade:", medicamento.quantidade)
 
-# INÍCIO DA QUESTÃO 10
-def caixa_eletronico():
-    conta = ContaBancaria()
+    medicamento.repor(50)
+    print("Quantidade:", medicamento.quantidade)
 
-    while True:
-        print("\n========== CAIXA ELETRÔNICO ==========")
-        print("1 - Depositar")
-        print("2 - Sacar")
-        print("3 - Saldo")
-        print("4 - Sair")
+    print("Dias para vencer:", Medicamento.dias_para_vencer(medicamento.validade))
 
-        try:
-            opcao = input("Escolha uma opção: ")
+    registro = "Dipirona;L002;2027-05-20;200;8.50"
 
-            if opcao == "1":
-                valor = float(input("Digite o valor do depósito: "))
-                conta.depositar(valor)
-                print("Depósito realizado com sucesso.")
+    medicamento2 = Medicamento.de_registro(registro)
 
-            elif opcao == "2":
-                valor = float(input("Digite o valor do saque: "))
-                conta.sacar(valor)
-                print("Saque realizado com sucesso.")
-
-            elif opcao == "3":
-                print(f"Saldo atual: R$ {conta.saldo:.2f}")
-
-            elif opcao == "4":
-                print("Programa encerrado.")
-                break
-
-            else:
-                print("Opção inválida.")
-
-        except ErroDeConta as erro:
-            print("Erro:", erro)
-
-        except (ValueError, TypeError):
-            print("Entrada inválida. Digite um valor numérico válido.")
-
-        except Exception as erro:
-            print("Ocorreu um erro inesperado:", erro)
-
-# FIM DA QUESTÃO 10
+    print(medicamento2) 
